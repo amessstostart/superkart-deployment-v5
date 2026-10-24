@@ -2,7 +2,9 @@ import streamlit as st
 import requests
 import pandas as pd
 
-# Update this variable with your live Codespace backend URL
+# -------------------------------------------------------------------
+# REPLACE THIS WITH YOUR LIVE PORT 7860 CODESPACES URL (NO TRAILING SLASH)
+# -------------------------------------------------------------------
 BACKEND_URL = "https://curly-enigma-jrg444vx74qc5x5x-7860.app.github.dev"
 
 st.set_page_config(page_title="SuperKart Sales Predictor", layout="wide")
@@ -10,7 +12,6 @@ st.title("🛒 SuperKart Sales Prediction Dashboard")
 
 st.markdown("---")
 
-# Tabbed Interface for Single and Batch Predictions
 tab1, tab2 = st.tabs(["Online Prediction", "Batch Prediction"])
 
 with tab1:
@@ -41,12 +42,15 @@ with tab1:
             "Supermarket_Type": outlet_type
         }
         
-        res = requests.post(f"{BACKEND_URL}/predict", json=payload)
-        if res.status_code == 200:
-            pred = res.json().get("prediction", 0)
-            st.success(f"Predicted Sales Amount: **${pred:,.2f}**")
-        else:
-            st.error(f"Error from backend API: {res.text}")
+        try:
+            res = requests.post(f"{BACKEND_URL}/predict", json=payload)
+            if res.status_code == 200:
+                pred = res.json().get("prediction", 0)
+                st.success(f"Predicted Sales Amount: **${pred:,.2f}**")
+            else:
+                st.error(f"Error from backend API ({res.status_code}): {res.text}")
+        except Exception as e:
+            st.error(f"Connection Failed: {e}")
 
 with tab2:
     st.subheader("Batch Predictions via CSV Upload")
@@ -59,12 +63,14 @@ with tab2:
         
         if st.button("Run Batch Inference"):
             data_payload = df.to_dict(orient="records")
-            res = requests.post(f"{BACKEND_URL}/predict_batch", json={"data": data_payload})
-            
-            if res.status_code == 200:
-                predictions = res.json().get("predictions", [])
-                df["Predicted_Sales"] = predictions
-                st.success("Batch Prediction Complete!")
-                st.dataframe(df)
-            else:
-                st.error(f"Batch prediction error: {res.text}")
+            try:
+                res = requests.post(f"{BACKEND_URL}/predict_batch", json={"data": data_payload})
+                if res.status_code == 200:
+                    predictions = res.json().get("predictions", [])
+                    df["Predicted_Sales"] = predictions
+                    st.success("Batch Prediction Complete!")
+                    st.dataframe(df)
+                else:
+                    st.error(f"Batch prediction error ({res.status_code}): {res.text}")
+            except Exception as e:
+                st.error(f"Connection Failed: {e}")
